@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RIVIPOHI AI</title>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --panel: #ffffff;
+      --text: #14161a;
+      --muted: #5f6672;
+      --border: #e2e6ef;
+      --user-bubble: #1a73e8;
+      --user-text: #ffffff;
+      --bot-bubble: #eef2f9;
+      --accent: #1a73e8;
+    }
+    body.dark {
+      --bg: #111317;
+      --panel: #191c22;
+      --text: #f1f3f6;
+      --muted: #9aa2b1;
+      --border: #2a2f3a;
+      --user-bubble: #3b82f6;
+      --user-text: #ffffff;
+      --bot-bubble: #232730;
+      --accent: #60a5fa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 14px;
+      gap: 10px;
+      transition: transform 0.25s ease;
+    }
+    .brand { display: flex; align-items: center; justify-content: space-between; padding: 6px 4px; }
+    .brand-title { font-weight: 700; font-size: 16px; letter-spacing: 0.4px; }
+    .badge { font-size: 11px; color: var(--accent); background: rgba(26,115,232,0.12); padding: 2px 8px; border-radius: 999px; }
+    .new-chat-btn {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+    }
+    .new-chat-btn:hover { background: var(--bot-bubble); }
+    .history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+    .history-item {
+      padding: 9px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .history-item.active, .history-item:hover { background: var(--bot-bubble); color: var(--text); }
+
+    /* Main Area */
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .topbar {
+      height: 56px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+    }
+    .top-left { display: flex; align-items: center; gap: 10px; }
+    .icon-btn {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      padding: 7px 11px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .icon-btn:hover { background: var(--bot-bubble); }
+
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .welcome {
+      text-align: center;
+      margin: auto;
+      max-width: 480px;
+      padding: 24px;
+    }
+    .welcome h1 { font-size: 28px; margin-bottom: 8px; color: var(--accent); }
+    .welcome p { color: var(--muted); font-size: 14px; line-height: 1.5; }
+
+    .msg {
+      max-width: 82%;
+      padding: 12px 16px;
+      border-radius: 14px;
+      line-height: 1.55;
+      font-size: 14.5px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .msg.user { align-self: flex-end; background: var(--user-bubble); color: var(--user-text); border-bottom-right-radius: 4px; }
+    .msg.bot { align-self: flex-start; background: var(--bot-bubble); color: var(--text); border-bottom-left-radius: 4px; }
+
+    /* Input Area */
+    .input-wrap {
+      padding: 12px 16px 18px;
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .input-box {
+      display: flex;
+      gap: 10px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 8px 10px;
+      align-items: flex-end;
+    }
+    textarea {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      resize: none;
+      max-height: 140px;
+      min-height: 24px;
+      font-size: 14.5px;
+      line-height: 1.45;
+      padding: 4px;
+    }
+    .send-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 9px 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+      padding: 20px; width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .modal input {
+      width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); font-size: 13.5px;
+    }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+    @media (max-width: 720px) {
+      .sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 40; transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-title">RIVIPOHI AI</span>
+      <span class="badge">3.8 Flash</span>
+    </div>
+    <button class="new-chat-btn" id="newChatBtn">+ New Chat</button>
+    <div class="history-list" id="historyList"></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="top-left">
+        <button class="icon-btn" id="toggleSidebarBtn">☰</button>
+        <strong>RIVIPOHI AI</strong>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="icon-btn" id="themeBtn">🌙 Dark</button>
+        <button class="icon-btn" id="keyBtn">🔑 API Key</button>
+      </div>
+    </header>
+
+    <div class="chat-area" id="chatArea">
+      <div class="welcome" id="welcomeBox">
+        <h1>RIVIPOHI AI</h1>
+        <p>Ask anything to get started. Your chats are saved locally in your browser.</p>
+      </div>
+    </div>
+
+    <div class="input-wrap">
+      <div class="input-box">
+        <textarea id="promptInput" rows="1" placeholder="Ask RIVIPOHI AI..."></textarea>
+        <button class="send-btn" id="sendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Optional API Key Modal (for quick local testing if not using hosted config) -->
+  <div class="modal-backdrop" id="keyModal">
+    <div class="modal">
+      <h3>Gemini API Key</h3>
+      <p style="font-size:13px; color:var(--muted);">
+        If no default key is configured on the host, paste a Gemini API key here. It is stored only in your browser.
+      </p>
+      <input type="password" id="apiKeyInput" placeholder="Paste AIza... key here" />
+      <div class="modal-actions">
+        <button class="icon-btn" id="clearKeyBtn">Clear</button>
+        <button class="icon-btn" id="closeModalBtn">Cancel</button>
+        <button class="send-btn" id="saveKeyBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const MODEL_NAME = "gemini-3.8-flash";
+    const STORAGE_CHATS = "rivipohi_ai_chats_v1";
+    const STORAGE_KEY = "rivipohi_ai_key_v1";
+    const STORAGE_THEME = "rivipohi_ai_theme_v1";
+
+    let chats = JSON.parse(localStorage.getItem(STORAGE_CHATS) || "[]");
+    let activeChatId = chats[0]?.id || null;
+
+    const chatArea = document.getElementById("chatArea");
+    const welcomeBox = document.getElementById("welcomeBox");
+    const promptInput = document.getElementById("promptInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const historyList = document.getElementById("historyList");
+    const sidebar = document.getElementById("sidebar");
+    const themeBtn = document.getElementById("themeBtn");
+    const keyModal = document.getElementById("keyModal");
+    const apiKeyInput = document.getElementById("apiKeyInput");
+
+    function applyTheme() {
+      const isDark = localStorage.getItem(STORAGE_THEME) === "dark";
+      document.body.classList.toggle("dark", isDark);
+      themeBtn.textContent = isDark ? "☀️ Light" : "🌙 Dark";
+    }
+    applyTheme();
+
+    themeBtn.addEventListener("click", () => {
+      const nextDark = !document.body.classList.contains("dark");
+      localStorage.setItem(STORAGE_THEME, nextDark ? "dark" : "light");
+      applyTheme();
+    });
+
+    document.getElementById("toggleSidebarBtn").addEventListener("click", () => {
+      sidebar.classList.toggle("open");
+    });
+
+    function saveChats() {
+      localStorage.setItem(STORAGE_CHATS, JSON.stringify(chats));
+    }
+
+    function getActiveChat() {
+      return chats.find(c => c.id === activeChatId) || null;
+    }
+
+    function createNewChat() {
+      const newChat = {
+        id: "chat_" + Date.now(),
+        title: "New Chat",
+        messages: []
+      };
+      chats.unshift(newChat);
+      activeChatId = newChat.id;
+      saveChats();
+      renderSidebar();
+      renderMessages();
+    }
+
+    function renderSidebar() {
+      historyList.innerHTML = "";
+      chats.forEach(chat => {
+        const div = document.createElement("div");
+        div.className = "history-item" + (chat.id === activeChatId ? " active" : "");
+        div.textContent = chat.title;
+        div.onclick = () => {
+          activeChatId = chat.id;
+          sidebar.classList.remove("open");
+          renderSidebar();
+          renderMessages();
+        };
+        historyList.appendChild(div);
+      });
+    }
+
+    function renderMessages() {
+      chatArea.innerHTML = "";
+      const chat = getActiveChat();
+      if (!chat || chat.messages.length === 0) {
+        chatArea.appendChild(welcomeBox);
+        return;
+      }
+      chat.messages.forEach(m => {
+        const bubble = document.createElement("div");
+        bubble.className = "msg " + (m.role === "user" ? "user" : "bot");
+        bubble.textContent = m.text;
+        chatArea.appendChild(bubble);
+      });
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function getApiKey() {
+      return localStorage.getItem(STORAGE_KEY) || "";
+    }
+
+    document.getElementById("keyBtn").addEventListener("click", () => {
+      apiKeyInput.value = getApiKey();
+      keyModal.classList.add("open");
+    });
+    document.getElementById("closeModalBtn").addEventListener("click", () => keyModal.classList.remove("open"));
+    document.getElementById("saveKeyBtn").addEventListener("click", () => {
+      const val = apiKeyInput.value.trim();
+      if (val) localStorage.setItem(STORAGE_KEY, val);
+      else localStorage.removeItem(STORAGE_KEY);
+      keyModal.classList.remove("open");
+    });
+    document.getElementById("clearKeyBtn").addEventListener("click", () => {
+      localStorage.removeItem(STORAGE_KEY);
+      apiKeyInput.value = "";
+    });
+
+    async function sendMessage() {
+      const text = promptInput.value.trim();
+      if (!text) return;
+
+      const apiKey = getApiKey();
+      if (!apiKey) {
+        keyModal.classList.add("open");
+        return;
+      }
+
+      if (!getActiveChat()) createNewChat();
+      const chat = getActiveChat();
+
+      if (chat.messages.length === 0) {
+        chat.title = text.slice(0, 32) || "New Chat";
+      }
+
+      chat.messages.push({ role: "user", text });
+      promptInput.value = "";
+      promptInput.style.height = "auto";
+      saveChats();
+      renderSidebar();
+      renderMessages();
+
+      const loadingBubble = document.createElement("div");
+      loadingBubble.className = "msg bot";
+      loadingBubble.textContent = "Thinking...";
+      chatArea.appendChild(loadingBubble);
+      chatArea.scrollTop = chatArea.scrollHeight;
+
+      sendBtn.disabled = true;
+
+      try {
+        const contents = chat.messages.map(m => ({
+          role: m.role === "user" ? "user" : "model",
+          parts: [{ text: m.text }]
+        }));
+
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${encodeURIComponent(apiKey)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents })
+          }
+        );
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data?.error?.message || "API request failed");
+        }
+
+        const reply =
+          data?.candidates?.[0]?.content?.parts?.map(p => p.text).join("") ||
+          "No response received.";
+
+        chat.messages.push({ role: "model", text: reply });
+      } catch (err) {
+        chat.messages.push({ role: "model", text: "Error: " + err.message });
+      } finally {
+        saveChats();
+        renderMessages();
+        sendBtn.disabled = false;
+      }
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    promptInput.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+    promptInput.addEventListener("input", () => {
+      promptInput.style.height = "auto";
+      promptInput.style.height = Math.min(promptInput.scrollHeight, 140) + "px";
+    });
+
+    document.getElementById("newChatBtn").addEventListener("click", createNewChat);
+
+    if (!activeChatId) {
+      createNewChat();
+    } else {
+      renderSidebar();
+      renderMessages();
+    }
+  </script>
+</body>
+</html>
